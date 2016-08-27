@@ -240,6 +240,9 @@ baseStyle =
         ("font-family", "'Roboto', sans-serif")
         , ("width", "50%")
         , ("margin", "0 25% 0 25%")
+        , ("box-sizing", "content-box")
+        , ("-moz-box-sizing", "content-box")
+        , ("-webkit-box-sizing", "content-box")
     ]
 
 borderCollapse : Html.Attribute Msg
