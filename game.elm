@@ -13,18 +13,6 @@ import Random.Extra
 
 -- HELPERS
 
-arraySwap : Array.Array a -> Int -> Int -> Maybe.Maybe (Array.Array a)
-arraySwap a i j =
-    ((Array.get j a)
-    |> Maybe.map (\aj -> Array.set i aj a))
-    `Maybe.andThen` (\a' -> Array.get i a 
-                            |> Maybe.map (\ai -> Array.set j ai a')) 
-
-listHalves : List a -> (List a, List a)
-listHalves l =
-    let len = round ((List.length l |> toFloat) / 2)
-    in (List.take len l, List.drop len l)
-
 listZip : List a -> List b -> List (a, b)
 listZip a b =
     List.map2 (\l r -> (l, r)) a b
@@ -40,8 +28,10 @@ link atts children =
 
 -- MODEL
 
+size : Int
 size = 5
 
+allPoss : Set.Set (Int, Int)
 allPoss =
     [ (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)
     , (0, 1), (1, 1), (2, 1), (3, 1), (4, 1)
@@ -55,6 +45,7 @@ type alias Model =
     , exposed : Set.Set (Int, Int)
     , targets : Dict.Dict (Int, Int) Int }
 
+emptyGame : Model
 emptyGame = 
     { mines = Set.empty
     , exposed = Set.empty
@@ -67,9 +58,6 @@ init =
       , targets = Dict.empty }
     , Random.generate InitGame (randomGame 1) )
 
-randomPos : Random.Generator (Int, Int)
-randomPos = Random.pair (Random.int 0 (size - 1)) (Random.int 0 (size - 1))
-
 randomPoss : Int -> Set.Set (Int, Int) -> Random.Generator (Set.Set (Int, Int))
 randomPoss n availablePoss =
     availablePoss
@@ -77,16 +65,6 @@ randomPoss n availablePoss =
     |> Array.fromList
     |> randomSample n
     |> Random.map (Array.toList >> Set.fromList)
-
-randomTargets : Int -> Set.Set (Int, Int) -> Random.Generator (Dict.Dict (Int, Int) Int)
-randomTargets n availablePoss =
-    let rposs =
-            randomPoss n availablePoss
-            |> Random.map Set.toList
-        rpoints =
-            Random.list n (Random.int 2 3)
-    in
-        Random.map2 (\poss points -> listZip poss points |> Dict.fromList) rposs rpoints
 
 populateRandomMines : Int -> Model -> Random.Generator Model
 populateRandomMines n m =
@@ -112,21 +90,6 @@ randomGame level =
         Random.Extra.constant emptyGame
         `Random.andThen` (populateRandomMines numMines)
         `Random.andThen` (populateRandomTargets numTargets)
-
-genTargets : List (Int, Int) -> Random.Generator (Dict.Dict (Int, Int) Int)
-genTargets l =
-    Random.list (List.length l) (Random.int 2 3)
-    |> Random.map2 listZip (Random.Extra.constant l)
-    |> Random.map Dict.fromList
-
-genGame : Random.Generator Model
-genGame =
-    (randomPos
-    |> Random.list 25
-    |> Random.map (Set.fromList >> Set.toList >> listHalves)
-    |> Random.map (\(l, r) -> (Set.fromList l, r)))
-    `Random.andThen` (\(l, r) -> Random.pair (Random.Extra.constant l) (genTargets r))
-    |> Random.map (\(ms, ts) -> {mines=ms, targets=ts, exposed=Set.empty})
 
 type Msg
     = NoOp
