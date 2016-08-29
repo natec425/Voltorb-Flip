@@ -8,7 +8,8 @@ import Set
 import Array
 import Dict
 import Random
-import Random.Array exposing (shuffle)
+import Random.Array
+import Random.Extra
 
 -- HELPERS
 
@@ -28,12 +29,9 @@ listZip : List a -> List b -> List (a, b)
 listZip a b =
     List.map2 (\l r -> (l, r)) a b
 
-randomConst : a -> Random.Generator a
-randomConst a = Random.bool |> Random.map (\_ -> a)
-
 randomSample : Int -> Array.Array a -> Random.Generator (Array.Array a)
 randomSample n l =
-    shuffle l
+    Random.Array.shuffle l
     |> Random.map (Array.slice 0 n)
 
 link : List (Html.Attribute Msg) -> List (Html Msg) -> Html Msg
@@ -56,6 +54,11 @@ type alias Model =
     { mines : Set.Set (Int, Int)
     , exposed : Set.Set (Int, Int)
     , targets : Dict.Dict (Int, Int) Int }
+
+emptyGame = 
+    { mines = Set.empty
+    , exposed = Set.empty
+    , targets = Dict.empty }
 
 init : (Model, Cmd Msg)
 init =
@@ -85,23 +88,35 @@ randomTargets n availablePoss =
     in
         Random.map2 (\poss points -> listZip poss points |> Dict.fromList) rposs rpoints
 
-randomMines : Int -> Set.Set (Int, Int) -> Random.Generator (Set.Set (Int, Int))
-randomMines = randomPoss
+populateRandomMines : Int -> Model -> Random.Generator Model
+populateRandomMines n m =
+    randomPoss n allPoss
+    |> Random.map (\ms -> {m | mines=ms })
+
+populateRandomTargets : Int -> Model -> Random.Generator Model
+populateRandomTargets n m =
+    let availablePoss = Set.diff allPoss m.mines
+        targetPoss = randomPoss n availablePoss |> Random.map (Set.toList)
+        targetPoints = Random.list n (Random.int 2 3)
+        targets = Random.map2 (\poss points -> listZip poss points |> Dict.fromList)
+                              targetPoss
+                              targetPoints
+    in
+        Random.map (\ts -> {m | targets=ts}) targets
 
 randomGame : Int -> Random.Generator Model
 randomGame level =
     let numTargets = 5 + level
         numMines = (25 - numTargets) // 2
-        rMines = randomPoss numMines allPoss
-        rTargetPoss = Random.map (Set.diff allPoss) rMines
-        rTargets = Random.andThen rTargetPoss (randomTargets numTargets) 
     in
-        Random.map2 (\ms ts -> {mines=ms, targets=ts, exposed=Set.empty}) rMines rTargets
+        Random.Extra.constant emptyGame
+        `Random.andThen` (populateRandomMines numMines)
+        `Random.andThen` (populateRandomTargets numTargets)
 
 genTargets : List (Int, Int) -> Random.Generator (Dict.Dict (Int, Int) Int)
 genTargets l =
     Random.list (List.length l) (Random.int 2 3)
-    |> Random.map2 listZip (randomConst l)
+    |> Random.map2 listZip (Random.Extra.constant l)
     |> Random.map Dict.fromList
 
 genGame : Random.Generator Model
@@ -110,7 +125,7 @@ genGame =
     |> Random.list 25
     |> Random.map (Set.fromList >> Set.toList >> listHalves)
     |> Random.map (\(l, r) -> (Set.fromList l, r)))
-    `Random.andThen` (\(l, r) -> Random.pair (randomConst l) (genTargets r))
+    `Random.andThen` (\(l, r) -> Random.pair (Random.Extra.constant l) (genTargets r))
     |> Random.map (\(ms, ts) -> {mines=ms, targets=ts, exposed=Set.empty})
 
 type Msg
