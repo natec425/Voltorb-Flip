@@ -1,6 +1,6 @@
 module Game.View exposing (..)
 
-import Game.Core exposing (Model, Msg(..), size)
+import Game.Core exposing (Board, Msg(..), size)
 
 
 import Html exposing (Html, div, text, table,  tr, td, span, button, node)
@@ -18,111 +18,111 @@ link atts children =
 
 -- VIEW
 
-view : Model -> Html Msg
-view model =
+view : Board -> Html Msg
+view board =
     div [baseStyle]
         [ link [href "https://fonts.googleapis.com/css?family=Roboto", rel "stylesheet" ] []
-        , viewWin model
-        , div [] [ viewMineField model
-                 , viewRowSummaries model ]
-        , viewColSummaries model 
+        , viewWin board
+        , div [] [ viewMineField board
+                 , viewRowSummaries board ]
+        , viewColSummaries board 
         , restartButton ]
 
-viewScore : Model -> Html Msg
-viewScore model =
-    div [] [text ("Your Score: " ++ (toString (score model)))]
+viewScore : Board -> Html Msg
+viewScore board =
+    div [] [text ("Your Score: " ++ (toString (score board)))]
 
-score : Model -> Int
-score model =
-    if Set.isEmpty model.exposed
+score : Board -> Int
+score board =
+    if Set.isEmpty board.exposed
     then 0
-    else model.exposed
+    else board.exposed
         |> Set.toList
-        |> List.map (\p -> Dict.get p model.targets |> Maybe.withDefault 1)
+        |> List.map (\p -> Dict.get p board.targets |> Maybe.withDefault 1)
         |> List.product
 
-viewWin : Model -> Html Msg
-viewWin model =
+viewWin : Board -> Html Msg
+viewWin board =
     span [] [
-        if not (Set.intersect model.exposed model.mines |> Set.isEmpty)
+        if not (Set.intersect board.exposed board.mines |> Set.isEmpty)
         then text "You Lose!"
-        else if Set.diff (model.targets |> Dict.keys |> Set.fromList) model.exposed |> Set.isEmpty
-        then span [] [viewScore model, text "You Win!"]
-        else viewScore model
+        else if Set.diff (board.targets |> Dict.keys |> Set.fromList) board.exposed |> Set.isEmpty
+        then span [] [viewScore board, text "You Win!"]
+        else viewScore board
     ]
 
-viewMineField : Model -> Html Msg
-viewMineField model =
+viewMineField : Board -> Html Msg
+viewMineField board =
     div [minefieldStyle] [
-        table [borderCollapse] (Array.initialize size (viewRow model) |> Array.toList)
+        table [borderCollapse] (Array.initialize size (viewRow board) |> Array.toList)
     ]
 
-viewRow : Model -> Int -> Html Msg
-viewRow model row =
-    tr [] (Array.initialize size (viewCell model row) |> Array.toList)
+viewRow : Board -> Int -> Html Msg
+viewRow board row =
+    tr [] (Array.initialize size (viewCell board row) |> Array.toList)
 
-viewCell : Model -> Int -> Int -> Html Msg
-viewCell model row column =
+viewCell : Board -> Int -> Int -> Html Msg
+viewCell board row column =
     td [cellStyle, onClick (Expose row column)]
-        [ if Set.member (row, column) model.exposed
-          then text (cellValue model row column)
+        [ if Set.member (row, column) board.exposed
+          then text (cellValue board row column)
           else text "?" ]
 
-cellValue : Model -> Int -> Int -> String
-cellValue model row column =
-    if Set.member (row, column) model.mines
+cellValue : Board -> Int -> Int -> String
+cellValue board row column =
+    if Set.member (row, column) board.mines
     then "X"
-    else case Dict.get (row, column) model.targets of
+    else case Dict.get (row, column) board.targets of
             Just v -> toString v
             Nothing -> "1"
 
-viewRowSummaries : Model -> Html Msg
-viewRowSummaries model =
+viewRowSummaries : Board -> Html Msg
+viewRowSummaries board =
     div [rowSummariesStyle] [
-        table [borderCollapse] [ tr [] (Array.initialize size (viewRowSummary model) |> Array.toList) ]
+        table [borderCollapse] [ tr [] (Array.initialize size (viewRowSummary board) |> Array.toList) ]
     ]
 
-viewRowSummary : Model -> Int -> Html Msg
-viewRowSummary model row =
+viewRowSummary : Board -> Int -> Html Msg
+viewRowSummary board row =
     td [rowSummaryStyle]
-        [ span [pointStyle] [text (toString (rowPoints model row))]
-        , span [mineStyle] [text (toString (rowMines model row))] ]
+        [ span [pointStyle] [text (toString (rowPoints board row))]
+        , span [mineStyle] [text (toString (rowMines board row))] ]
 
-rowPoints : Model -> Int -> Int
-rowPoints model row =
+rowPoints : Board -> Int -> Int
+rowPoints board row =
     [0, 1, 2, 3, 4]
-    |> List.filter (\c -> not (Set.member (row, c) model.mines))
-    |> List.map (\c -> Dict.get (row, c) model.targets)
+    |> List.filter (\c -> not (Set.member (row, c) board.mines))
+    |> List.map (\c -> Dict.get (row, c) board.targets)
     |> List.map (Maybe.withDefault 1)
     |> List.sum
 
-rowMines : Model -> Int -> Int
-rowMines model row =
-    Set.filter (\(r, c) -> r == row) model.mines |> Set.size
+rowMines : Board -> Int -> Int
+rowMines board row =
+    Set.filter (\(r, c) -> r == row) board.mines |> Set.size
 
-viewColSummaries : Model -> Html Msg
-viewColSummaries model =
+viewColSummaries : Board -> Html Msg
+viewColSummaries board =
     div [colSummariesStyle] [
-        table [borderCollapse] [ tr [] (Array.initialize size (viewColSummary model) |> Array.toList) ]
+        table [borderCollapse] [ tr [] (Array.initialize size (viewColSummary board) |> Array.toList) ]
     ]
 
-viewColSummary : Model -> Int -> Html Msg
-viewColSummary model col =
+viewColSummary : Board -> Int -> Html Msg
+viewColSummary board col =
     td [colSummaryStyle]
-        [ span [pointStyle] [text (toString (colPoints model col))]
-        , span [mineStyle] [text (toString (colMines model col))]]
+        [ span [pointStyle] [text (toString (colPoints board col))]
+        , span [mineStyle] [text (toString (colMines board col))]]
 
-colPoints : Model -> Int -> Int
-colPoints model col =
+colPoints : Board -> Int -> Int
+colPoints board col =
     [0, 1, 2, 3, 4]
-    |> List.filter (\r -> not (Set.member (r, col) model.mines))
-    |> List.map (\r -> Dict.get (r, col) model.targets)
+    |> List.filter (\r -> not (Set.member (r, col) board.mines))
+    |> List.map (\r -> Dict.get (r, col) board.targets)
     |> List.map (Maybe.withDefault 1)
     |> List.sum
 
-colMines : Model -> Int -> Int
-colMines model col =
-    Set.filter (\(r, c) -> col == c) model.mines |> Set.size
+colMines : Board -> Int -> Int
+colMines board col =
+    Set.filter (\(r, c) -> col == c) board.mines |> Set.size
 
 restartButton : Html Msg
 restartButton =
