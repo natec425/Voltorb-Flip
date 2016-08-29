@@ -135,8 +135,6 @@ baseStyle : Html.Attribute Msg
 baseStyle =
     style [
         ("font-family", "'Roboto', sans-serif")
-        , ("width", "50%")
-        , ("margin", "0 25% 0 25%")
         , ("box-sizing", "content-box")
         , ("-moz-box-sizing", "content-box")
         , ("-webkit-box-sizing", "content-box")
@@ -155,8 +153,8 @@ cellStyle =
     style [
         ("padding", ".5em")
         , ("background", "#00cc66")
-        , ("width", "2em")
-        , ("height", "2em")
+        , ("width", "2.5em")
+        , ("height", "2.5em")
         , ("text-align", "center")
     ]
 
@@ -172,8 +170,8 @@ rowSummaryStyle =
         ("display", "block")
         , ("background", "#DDDDDD")
         , ("padding", ".5em")
-        , ("width", "2em")
-        , ("height", "2em")
+        , ("width", "2.5em")
+        , ("height", "2.5em")
         , ("text-align", "center")
     ]
 
@@ -186,8 +184,8 @@ colSummaryStyle =
     style [
         ("background", "#DDDDDD")
         , ("padding", ".5em")
-        , ("width", "2em")
-        , ("height", "2em")
+        , ("width", "2.5em")
+        , ("height", "2.5em")
         , ("text-align", "center")
     ]
 
