@@ -1,6 +1,6 @@
 module Game.View exposing (..)
 
-import Game.Core exposing (Board, Msg(..), size)
+import Game.Core exposing (Model(..), Board, Msg(..), size, allPoss)
 
 
 import Html exposing (Html, div, text, table,  tr, td, span, button, node)
@@ -18,8 +18,16 @@ link atts children =
 
 -- VIEW
 
-view : Board -> Html Msg
-view board =
+view : Model -> Html Msg
+view model =
+    case model of
+        NoGame -> restartButton
+        Playing board -> viewBoard board
+        Won board -> viewBoard {board | exposed = allPoss}
+        Lost board -> viewBoard {board | exposed = allPoss}
+
+viewBoard : Board -> Html Msg
+viewBoard board =
     div [baseStyle]
         [ link [href "https://fonts.googleapis.com/css?family=Roboto", rel "stylesheet" ] []
         , viewWin board

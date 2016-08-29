@@ -15,7 +15,8 @@ listZip a b =
 
 randomSample : Int -> Array.Array a -> Random.Generator (Array.Array a)
 randomSample n l =
-    Random.Array.shuffle l
+    l
+    |> Random.Array.shuffle
     |> Random.map (Array.slice 0 n)
 
 -- Board
@@ -32,23 +33,27 @@ allPoss =
     , (0, 4), (1, 4), (2, 4), (3, 4), (4, 4)]
     |> Set.fromList
 
+type Model
+    = NoGame
+    | Playing Board
+    | Won Board
+    | Lost Board
+
 type alias Board =
     { mines : Set.Set (Int, Int)
     , exposed : Set.Set (Int, Int)
     , targets : Dict.Dict (Int, Int) Int }
 
-emptyGame : Board
-emptyGame = 
+emptyBoard : Board
+emptyBoard = 
     { mines = Set.empty
     , exposed = Set.empty
     , targets = Dict.empty }
 
-init : (Board, Cmd Msg)
+init : (Model, Cmd Msg)
 init =
-    ( { mines = Set.empty
-      , exposed = Set.empty
-      , targets = Dict.empty }
-    , Random.generate InitGame (randomGame 1) )
+    ( NoGame
+    , Random.generate NewBoard (randomBoard 1) )
 
 randomPoss : Int -> Set.Set (Int, Int) -> Random.Generator (Set.Set (Int, Int))
 randomPoss n availablePoss =
@@ -65,43 +70,81 @@ populateRandomMines n b =
 
 populateRandomTargets : Int -> Board -> Random.Generator Board
 populateRandomTargets n b =
-    let availablePoss = Set.diff allPoss b.mines
-        targetPoss = randomPoss n availablePoss |> Random.map (Set.toList)
-        targetPoints = Random.list n (Random.int 2 3)
-        targets = Random.map2 (\poss points -> listZip poss points |> Dict.fromList)
-                              targetPoss
-                              targetPoints
-    in
-        Random.map (\ts -> {b | targets=ts}) targets
+    let availablePoss =
+            Set.diff allPoss b.mines
 
-randomGame : Int -> Random.Generator Board
-randomGame level =
+        targetPoss =
+            availablePoss
+            |> randomPoss n
+            |> Random.map (Set.toList)
+
+        targetPoints =
+            Random.int 2 3
+            |> Random.list n
+
+        targets =
+            Random.map2 (\poss points -> listZip poss points |> Dict.fromList)
+                        targetPoss
+                        targetPoints
+    in
+        targets
+        |> Random.map (\ts -> {b | targets=ts})
+
+randomBoard : Int -> Random.Generator Board
+randomBoard level =
     let numTargets = 5 + level
         numMines = (25 - numTargets) // 2
     in
-        Random.Extra.constant emptyGame
+        Random.Extra.constant emptyBoard
         `Random.andThen` (populateRandomMines numMines)
         `Random.andThen` (populateRandomTargets numTargets)
 
+-- UPDATE
+
 type Msg
     = NoOp
-    | InitGame Board
+    | NewBoard Board
     | Expose Int Int
     | NewGame
 
--- UPDATE
-
-update : Msg -> Board -> (Board, Cmd Msg)
-update msg board =
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
     case msg of
-        NoOp -> (board, Cmd.none)
-        InitGame board -> (board, Cmd.none)
-        Expose row column -> (expose board row column, Cmd.none)
-        NewGame -> (board, Random.generate InitGame (randomGame 1))
+        NoOp -> (model, Cmd.none)
+        NewBoard board -> (Playing board, Cmd.none)
+        Expose row column -> (expose model row column, Cmd.none)
+        NewGame -> (model, Random.generate NewBoard (randomBoard 1))
 
-expose : Board -> Int -> Int -> Board
-expose board row column =
-    { board | exposed = Set.insert (row, column) board.exposed }
+expose : Model -> Int -> Int -> Model
+expose model row column =
+    case model of
+        NoGame -> NoGame
+        Playing board -> exposePlaying board row column
+        Won board -> Won board
+        Lost board -> Lost board
+
+exposePlaying : Board -> Int -> Int -> Model
+exposePlaying board row column =
+    let board' = 
+            { board | exposed = Set.insert (row, column) board.exposed }
+    in if hasExposedMine board' then Lost board'
+       else if allTargetsExposed board' then Won board'
+       else Playing board'
+
+hasExposedMine : Board -> Bool
+hasExposedMine board =
+    Set.intersect board.exposed board.mines
+    |> Set.isEmpty
+    |> not
+
+allTargetsExposed : Board -> Bool
+allTargetsExposed board =
+    let targetPoss =
+            board.targets
+            |> Dict.keys
+            |> Set.fromList
+    in Set.diff targetPoss board.exposed
+       |> Set.isEmpty
 
 -- SUBSCRIPTIONS
 
