@@ -146,6 +146,38 @@ allTargetsExposed board =
     in Set.diff targetPoss board.exposed
        |> Set.isEmpty
 
+colPoints : Board -> Int -> Int
+colPoints board col =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\r -> not (Set.member (r, col) board.mines))
+    |> List.map (\r -> Dict.get (r, col) board.targets)
+    |> List.map (Maybe.withDefault 1)
+    |> List.sum
+
+colMines : Board -> Int -> Int
+colMines board col =
+    Set.filter (\(r, c) -> col == c) board.mines |> Set.size
+
+rowPoints : Board -> Int -> Int
+rowPoints board row =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\c -> not (Set.member (row, c) board.mines))
+    |> List.map (\c -> Dict.get (row, c) board.targets)
+    |> List.map (Maybe.withDefault 1)
+    |> List.sum
+
+rowMines : Board -> Int -> Int
+rowMines board row =
+    Set.filter (\(r, c) -> r == row) board.mines |> Set.size
+
+score : Board -> Int
+score board =
+    if Set.isEmpty board.exposed
+    then 0
+    else board.exposed
+        |> Set.toList
+        |> List.map (\p -> Dict.get p board.targets |> Maybe.withDefault 1)
+        |> List.product
 -- SUBSCRIPTIONS
 
 subscriptions : a -> Sub b

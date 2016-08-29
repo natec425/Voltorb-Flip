@@ -1,6 +1,6 @@
 module Game.View exposing (..)
 
-import Game.Core exposing (Model(..), Board, Msg(..), size, allPoss)
+import Game.Core exposing (..)
 
 
 import Html exposing (Html, div, text, table,  tr, td, span, button, node)
@@ -39,15 +39,6 @@ viewBoard board =
 viewScore : Board -> Html Msg
 viewScore board =
     div [] [text ("Your Score: " ++ (toString (score board)))]
-
-score : Board -> Int
-score board =
-    if Set.isEmpty board.exposed
-    then 0
-    else board.exposed
-        |> Set.toList
-        |> List.map (\p -> Dict.get p board.targets |> Maybe.withDefault 1)
-        |> List.product
 
 viewWin : Board -> Html Msg
 viewWin board =
@@ -96,18 +87,6 @@ viewRowSummary board row =
         [ span [pointStyle] [text (toString (rowPoints board row))]
         , span [mineStyle] [text (toString (rowMines board row))] ]
 
-rowPoints : Board -> Int -> Int
-rowPoints board row =
-    [0, 1, 2, 3, 4]
-    |> List.filter (\c -> not (Set.member (row, c) board.mines))
-    |> List.map (\c -> Dict.get (row, c) board.targets)
-    |> List.map (Maybe.withDefault 1)
-    |> List.sum
-
-rowMines : Board -> Int -> Int
-rowMines board row =
-    Set.filter (\(r, c) -> r == row) board.mines |> Set.size
-
 viewColSummaries : Board -> Html Msg
 viewColSummaries board =
     div [colSummariesStyle] [
@@ -119,18 +98,6 @@ viewColSummary board col =
     td [colSummaryStyle]
         [ span [pointStyle] [text (toString (colPoints board col))]
         , span [mineStyle] [text (toString (colMines board col))]]
-
-colPoints : Board -> Int -> Int
-colPoints board col =
-    [0, 1, 2, 3, 4]
-    |> List.filter (\r -> not (Set.member (r, col) board.mines))
-    |> List.map (\r -> Dict.get (r, col) board.targets)
-    |> List.map (Maybe.withDefault 1)
-    |> List.sum
-
-colMines : Board -> Int -> Int
-colMines board col =
-    Set.filter (\(r, c) -> col == c) board.mines |> Set.size
 
 restartButton : Html Msg
 restartButton =
