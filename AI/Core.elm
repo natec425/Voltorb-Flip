@@ -4,14 +4,24 @@ import Game.Core exposing (..)
 
 import Set
 import List.Extra
-import Debug exposing (crash)
+import Debug exposing (crash, log)
+
+-- HELPERS
+
+cmd : a -> Cmd a
+cmd a = Cmd.none |> Cmd.map (\_ -> a)
 
 -- MODEL
 
 type alias Model = Game.Core.Model
 
+wrapMC : ( a, Cmd Game.Core.Msg ) -> ( a, Cmd Msg )
+wrapMC (m, c) = (m, c |> Cmd.map GameMsg)
+
 init : ( Model, Cmd Msg )
 init = Game.Core.init
+       |> wrapMC
+            
 
 action : Board -> (Int, Int)
 action board =
@@ -34,9 +44,28 @@ expectation board (row, col) =
             (toFloat (colAvailablePoints board col) / toFloat (colAvailableSpaces board col))
 
 -- UPDATE
+type Msg
+    = Play
+    | GameMsg Game.Core.Msg
+
+play : Board -> (Model, Cmd Msg)
+play board =
+    action board
+    |> uncurry Expose
+    |> \msg -> Game.Core.update msg (Playing board)
+    |> wrapMC
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update = Game.Core.update
+update msg model =
+    case log "update" (msg, model) of
+        (Play, Playing board) ->
+            play board
+        (Play, _) ->
+            (model, Cmd.none)
+        (GameMsg gameMsg, _) ->
+            Game.Core.update gameMsg model
+            |> wrapMC
+
 
 -- SUBSCRIPTIONS
 
