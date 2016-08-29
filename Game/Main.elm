@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Game.Main exposing (..)
 
 import Game.Core exposing (init, update, subscriptions)
 import Game.View exposing (view)
