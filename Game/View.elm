@@ -7,7 +7,6 @@ import Html exposing (Html, div, text, table,  tr, td, span, button, node)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (style, href, rel)
 import Set
-import Dict
 import Array
 
 -- HELPERS
@@ -23,14 +22,17 @@ view model =
     case model of
         NoGame -> restartButton
         Playing board -> viewBoard board
-        Won board -> viewBoard {board | exposed = allPoss}
-        Lost board -> viewBoard {board | exposed = allPoss}
+        Won board -> 
+            div [] [ text "You Win!"
+                   , viewBoard {board | exposed = allPoss} ]
+        Lost board ->
+            div [] [ text "You Lose!"
+                   , viewBoard {board | exposed = allPoss}]
 
 viewBoard : Board -> Html Msg
 viewBoard board =
     div [baseStyle]
         [ link [href "https://fonts.googleapis.com/css?family=Roboto", rel "stylesheet" ] []
-        , viewWin board
         , div [] [ viewMineField board
                  , viewRowSummaries board ]
         , viewColSummaries board 
@@ -39,16 +41,6 @@ viewBoard board =
 viewScore : Board -> Html Msg
 viewScore board =
     div [] [text ("Your Score: " ++ (toString (score board)))]
-
-viewWin : Board -> Html Msg
-viewWin board =
-    span [] [
-        if not (Set.intersect board.exposed board.mines |> Set.isEmpty)
-        then text "You Lose!"
-        else if Set.diff (board.targets |> Dict.keys |> Set.fromList) board.exposed |> Set.isEmpty
-        then span [] [viewScore board, text "You Win!"]
-        else viewScore board
-    ]
 
 viewMineField : Board -> Html Msg
 viewMineField board =
@@ -64,16 +56,9 @@ viewCell : Board -> Int -> Int -> Html Msg
 viewCell board row column =
     td [cellStyle, onClick (Expose row column)]
         [ if Set.member (row, column) board.exposed
-          then text (cellValue board row column)
+          then let v = cellValue board row column
+               in (if v == 0 then "X" else toString v) |> text
           else text "?" ]
-
-cellValue : Board -> Int -> Int -> String
-cellValue board row column =
-    if Set.member (row, column) board.mines
-    then "X"
-    else case Dict.get (row, column) board.targets of
-            Just v -> toString v
-            Nothing -> "1"
 
 viewRowSummaries : Board -> Html Msg
 viewRowSummaries board =

@@ -178,6 +178,53 @@ score board =
         |> Set.toList
         |> List.map (\p -> Dict.get p board.targets |> Maybe.withDefault 1)
         |> List.product
+
+cellValue : Board -> Int -> Int -> Int
+cellValue board row column =
+    if Set.member (row, column) board.mines
+    then 0
+    else case Dict.get (row, column) board.targets of
+            Just v -> v
+            Nothing -> 1
+
+exposedRowPoints : Board -> Int -> Int
+exposedRowPoints board row =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\c -> not (Set.member (row, c) board.mines))
+    |> List.filter (\c -> Set.member (row, c) board.exposed)
+    |> List.map (\c -> Dict.get (row, c) board.targets)
+    |> List.map (Maybe.withDefault 1)
+    |> List.sum
+
+exposedColPoints : Board -> Int -> Int
+exposedColPoints board col =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\r -> not (Set.member (r, col) board.mines))
+    |> List.filter (\r -> Set.member (r, col) board.exposed)
+    |> List.map (\r -> Dict.get (r, col) board.targets)
+    |> List.map (Maybe.withDefault 1)
+    |> List.sum
+
+rowAvailablePoints : Board -> Int -> Int
+rowAvailablePoints board row =
+    rowPoints board row - exposedRowPoints board row
+
+rowAvailableSpaces : Board -> Int -> Int
+rowAvailableSpaces board row =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\c -> not (Set.member (row, c) board.exposed))
+    |> List.length
+
+colAvailablePoints : Board -> Int -> Int
+colAvailablePoints board col =
+    colPoints board col - exposedColPoints board col
+
+colAvailableSpaces : Board -> Int -> Int
+colAvailableSpaces board col =
+    [0, 1, 2, 3, 4]
+    |> List.filter (\r -> not (Set.member (r, col) board.exposed))
+    |> List.length
+
 -- SUBSCRIPTIONS
 
 subscriptions : a -> Sub b
