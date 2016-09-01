@@ -12,17 +12,20 @@ import Html.Events exposing (onClick)
 
 view : AI.Core.Model -> Html AI.Core.Msg
 view model =
-    case model of
-        NoGame -> Game.View.view model |> Html.App.map GameMsg
+    case model.gameModel of
+        NoGame -> Game.View.view model.gameModel |> Html.App.map GameMsg
         Playing board ->
             div [] [
-                Game.View.view model |> Html.App.map GameMsg
+                Game.View.view model.gameModel |> Html.App.map GameMsg
                 , viewExpectations board
                 , action board |> toString |> text
                 , playButton
+                , autoPlayButton
+                , div [] [text ("Wins: " ++ toString model.wins)]
+                , div [] [text ("Loses: " ++ toString model.losses)]
             ]
-        Won board -> Game.View.view model |> Html.App.map GameMsg
-        Lost board -> Game.View.view model |> Html.App.map GameMsg
+        Won board -> Game.View.view model.gameModel |> Html.App.map GameMsg
+        Lost board -> Game.View.view model.gameModel |> Html.App.map GameMsg
 
 viewExpectations : Board -> Html AI.Core.Msg
 viewExpectations board =
@@ -49,3 +52,6 @@ viewCell board (row, col) =
 
 playButton : Html AI.Core.Msg
 playButton = button [onClick Play] [text "Play AI"]
+
+autoPlayButton : Html AI.Core.Msg
+autoPlayButton = button [onClick AutoPlay] [text "Autoplay 1 Game"]

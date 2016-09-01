@@ -11,16 +11,26 @@ import Debug exposing (crash, log)
 cmd : a -> Cmd a
 cmd a = Cmd.none |> Cmd.map (\_ -> a)
 
+batchCmd : ( a, Cmd b ) -> Cmd b -> ( a, Cmd b )
+batchCmd (m, c1) c2 =
+    (m, Cmd.batch [c1, c2])
 -- MODEL
 
-type alias Model = Game.Core.Model
+type alias Model =
+    { wins : Int
+    , losses : Int
+    , gameModel : Game.Core.Model }
 
 wrapMC : ( a, Cmd Game.Core.Msg ) -> ( a, Cmd Msg )
 wrapMC (m, c) = (m, c |> Cmd.map GameMsg)
 
 init : ( Model, Cmd Msg )
-init = Game.Core.init
-       |> wrapMC
+init =
+    let (gameModel, gameCmd) = Game.Core.init
+    in ({ wins = 0
+        , losses = 0
+        , gameModel = gameModel }
+       , gameCmd |> Cmd.map GameMsg)
             
 
 action : Board -> (Int, Int)
@@ -46,9 +56,10 @@ expectation board (row, col) =
 -- UPDATE
 type Msg
     = Play
+    | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Board -> (Model, Cmd Msg)
+play : Board -> (Game.Core.Model, Cmd Msg)
 play board =
     action board
     |> uncurry Expose
@@ -57,14 +68,30 @@ play board =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case log "update" (msg, model) of
+    case log "update" (msg, model.gameModel) of
         (Play, Playing board) ->
-            play board
+            let (gameModel, cmd) = play board
+            in ({model | gameModel = gameModel}, cmd)
         (Play, _) ->
             (model, Cmd.none)
+        (AutoPlay, Playing board) ->
+            let (uModel, uCmd) = update Play model
+            in case uModel.gameModel of
+                NoGame ->
+                    (uModel, uCmd)
+                Playing board ->
+                    update AutoPlay uModel `batchCmd` uCmd
+                Won board ->
+                    let (uModel, uCmd) = update (GameMsg NewGame) model
+                    in ({uModel | wins = uModel.wins + 1}, Cmd.batch [uCmd, cmd AutoPlay])
+                Lost board ->  
+                    let (uModel, uCmd) = update (GameMsg NewGame) model
+                    in ({uModel | losses = uModel.losses + 1}, Cmd.batch [uCmd, cmd AutoPlay])
+        (AutoPlay, gameModel) ->
+            (model, cmd (GameMsg NewGame))
         (GameMsg gameMsg, _) ->
-            Game.Core.update gameMsg model
-            |> wrapMC
+            let (gameModel, gameCmd) = Game.Core.update gameMsg model.gameModel
+            in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
 
 
 -- SUBSCRIPTIONS
