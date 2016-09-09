@@ -5,11 +5,12 @@ import Game.Core exposing (..)
 import Set
 import List.Extra
 import Debug exposing (crash, log)
+import Time exposing (Time, millisecond, every)
 
 -- HELPERS
 
 cmd : a -> Cmd a
-cmd a = Cmd.none |> Cmd.map (\_ -> a)
+cmd a = Cmd.none |> Cmd.map (\_ -> a |> log "cmd")
 
 batchCmd : ( a, Cmd b ) -> Cmd b -> ( a, Cmd b )
 batchCmd (m, c1) c2 =
@@ -75,20 +76,13 @@ update msg model =
         (Play, _) ->
             (model, Cmd.none)
         (AutoPlay, Playing board) ->
-            let (uModel, uCmd) = update Play model
-            in case uModel.gameModel of
-                NoGame ->
-                    (uModel, uCmd)
-                Playing board ->
-                    update AutoPlay uModel `batchCmd` uCmd
-                Won board ->
-                    let (uModel, uCmd) = update (GameMsg NewGame) model
-                    in ({uModel | wins = uModel.wins + 1}, Cmd.batch [uCmd, cmd AutoPlay])
-                Lost board ->  
-                    let (uModel, uCmd) = update (GameMsg NewGame) model
-                    in ({uModel | losses = uModel.losses + 1}, Cmd.batch [uCmd, cmd AutoPlay])
-        (AutoPlay, gameModel) ->
-            (model, cmd (GameMsg NewGame))
+            update Play model
+        (AutoPlay, NoGame) ->
+            update (GameMsg NewGame) model
+        (AutoPlay, Won _) ->
+            update (GameMsg NewGame) {model | wins = model.wins + 1}
+        (AutoPlay, Lost _) ->
+            update (GameMsg NewGame) {model | losses = model.losses + 1}
         (GameMsg gameMsg, _) ->
             let (gameModel, gameCmd) = Game.Core.update gameMsg model.gameModel
             in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
@@ -96,5 +90,7 @@ update msg model =
 
 -- SUBSCRIPTIONS
 
-subscriptions : a -> Sub b
-subscriptions = Game.Core.subscriptions
+subscriptions : Model -> Sub Msg
+subscriptions model = 
+    Sub.batch [Game.Core.subscriptions model.gameModel,
+               Time.every (50 * millisecond) (\_ -> AutoPlay) ]
