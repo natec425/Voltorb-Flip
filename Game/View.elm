@@ -21,7 +21,9 @@ view : Model -> Html Msg
 view model =
     case model of
         NoGame -> restartButton
-        Playing board -> viewBoard board
+        Playing board ->
+            div [] [ text ("Your Score: " ++ (toString (score board)))
+                   , viewBoard board ]
         Won board -> 
             div [] [ text "You Win!"
                    , viewBoard {board | exposed = allPoss} ]
