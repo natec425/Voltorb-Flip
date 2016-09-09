@@ -4,17 +4,9 @@ import Game.Core exposing (..)
 
 import Set
 import List.Extra
-import Debug exposing (crash, log)
 import Time exposing (Time, millisecond, every)
+import Debug exposing (crash)
 
--- HELPERS
-
-cmd : a -> Cmd a
-cmd a = Cmd.none |> Cmd.map (\_ -> a |> log "cmd")
-
-batchCmd : ( a, Cmd b ) -> Cmd b -> ( a, Cmd b )
-batchCmd (m, c1) c2 =
-    (m, Cmd.batch [c1, c2])
 -- MODEL
 
 type alias Model =
@@ -22,9 +14,6 @@ type alias Model =
     , losses : Int
     , gameModel : Game.Core.Model
     , playing : Bool }
-
-wrapMC : ( a, Cmd Game.Core.Msg ) -> ( a, Cmd Msg )
-wrapMC (m, c) = (m, c |> Cmd.map GameMsg)
 
 init : ( Model, Cmd Msg )
 init =
@@ -45,7 +34,7 @@ action board =
             |> List.Extra.maximumBy (expectation board)
     in case response of
             Just ans -> ans
-            Nothing -> crash "AI Didn't produce an answer"
+            Nothing -> crash "AI didn't produce an answer"
 
 expectation : Board -> (Int, Int) -> Float
 expectation board (row, col) =
@@ -53,7 +42,7 @@ expectation board (row, col) =
     then cellValue board row col |> toFloat
     else if size - rowMines board row == 0 || size - colMines board col == 0
     then 0.0
-    else min (toFloat (rowAvailablePoints board row) / toFloat( rowAvailableSpaces board row))
+    else min (toFloat (rowAvailablePoints board row) / toFloat(rowAvailableSpaces board row))
             (toFloat (colAvailablePoints board col) / toFloat (colAvailableSpaces board col))
 
 -- UPDATE
@@ -62,19 +51,17 @@ type Msg
     | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Board -> (Game.Core.Model, Cmd Msg)
+play : Board -> (Game.Core.Model, Cmd Game.Core.Msg)
 play board =
-    action board
-    |> uncurry Expose
-    |> \msg -> Game.Core.update msg (Playing board)
-    |> wrapMC
+    let (row, column) = action board
+    in Game.Core.update (Expose row column) (Playing board)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case log "update" (msg, model.gameModel) of
+    case (msg, model.gameModel) of
         (Play, Playing board) ->
-            let (gameModel, cmd) = play board
-            in ({model | gameModel = gameModel}, cmd)
+            let (gameModel, gameCmd) = play board
+            in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
         (Play, NoGame) ->
             update (GameMsg NewGame) model
         (Play, Won _) ->
