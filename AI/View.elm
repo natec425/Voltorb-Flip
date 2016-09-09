@@ -17,10 +17,10 @@ view model =
         Playing board ->
             div [] [
                 Game.View.view model.gameModel |> Html.App.map GameMsg
-                , viewExpectations board
-                , action board |> toString |> text
-                , playButton
-                , autoPlayButton
+                -- , viewExpectations board
+                -- , action board |> toString |> text
+                -- , playButton
+                -- , autoPlayButton
                 , div [] [text ("Wins: " ++ toString model.wins)]
                 , div [] [text ("Loses: " ++ toString model.losses)]
             ]
