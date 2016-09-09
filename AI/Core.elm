@@ -93,4 +93,4 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model = 
     Sub.batch [Game.Core.subscriptions model.gameModel,
-               Time.every (50 * millisecond) (\_ -> AutoPlay) ]
+               Time.every (5 * millisecond) (\_ -> AutoPlay) ]
