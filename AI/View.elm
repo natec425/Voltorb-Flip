@@ -17,15 +17,24 @@ view model =
         Playing board ->
             div [] [
                 Game.View.view model.gameModel |> Html.App.map GameMsg
-                -- , viewExpectations board
-                -- , action board |> toString |> text
-                -- , playButton
-                -- , autoPlayButton
+                , autoPlayButton model
                 , div [] [text ("Wins: " ++ toString model.wins)]
                 , div [] [text ("Loses: " ++ toString model.losses)]
             ]
-        Won board -> Game.View.view model.gameModel |> Html.App.map GameMsg
-        Lost board -> Game.View.view model.gameModel |> Html.App.map GameMsg
+        Won board ->
+            div [] [
+                Game.View.view model.gameModel |> Html.App.map GameMsg
+                , autoPlayButton model
+                , div [] [text ("Wins: " ++ toString model.wins)]
+                , div [] [text ("Loses: " ++ toString model.losses)]
+            ]
+        Lost board ->
+            div [] [
+                Game.View.view model.gameModel |> Html.App.map GameMsg
+                , autoPlayButton model
+                , div [] [text ("Wins: " ++ toString model.wins)]
+                , div [] [text ("Loses: " ++ toString model.losses)]
+            ]
 
 viewExpectations : Board -> Html AI.Core.Msg
 viewExpectations board =
@@ -53,5 +62,9 @@ viewCell board (row, col) =
 playButton : Html AI.Core.Msg
 playButton = button [onClick Play] [text "Play AI"]
 
-autoPlayButton : Html AI.Core.Msg
-autoPlayButton = button [onClick AutoPlay] [text "Autoplay 1 Game"]
+autoPlayButton : AI.Core.Model -> Html AI.Core.Msg
+autoPlayButton model = 
+    button [onClick AutoPlay]
+           [ if model.playing
+             then text "Turn Off AutoPlay"
+             else text "Turn On AutoPlay" ]

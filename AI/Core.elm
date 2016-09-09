@@ -20,7 +20,8 @@ batchCmd (m, c1) c2 =
 type alias Model =
     { wins : Int
     , losses : Int
-    , gameModel : Game.Core.Model }
+    , gameModel : Game.Core.Model
+    , playing : Bool }
 
 wrapMC : ( a, Cmd Game.Core.Msg ) -> ( a, Cmd Msg )
 wrapMC (m, c) = (m, c |> Cmd.map GameMsg)
@@ -30,7 +31,8 @@ init =
     let (gameModel, gameCmd) = Game.Core.init
     in ({ wins = 0
         , losses = 0
-        , gameModel = gameModel }
+        , gameModel = gameModel
+        , playing = False }
        , gameCmd |> Cmd.map GameMsg)
             
 
@@ -73,24 +75,24 @@ update msg model =
         (Play, Playing board) ->
             let (gameModel, cmd) = play board
             in ({model | gameModel = gameModel}, cmd)
-        (Play, _) ->
-            (model, Cmd.none)
-        (AutoPlay, Playing board) ->
-            update Play model
-        (AutoPlay, NoGame) ->
+        (Play, NoGame) ->
             update (GameMsg NewGame) model
-        (AutoPlay, Won _) ->
+        (Play, Won _) ->
             update (GameMsg NewGame) {model | wins = model.wins + 1}
-        (AutoPlay, Lost _) ->
+        (Play, Lost _) ->
             update (GameMsg NewGame) {model | losses = model.losses + 1}
         (GameMsg gameMsg, _) ->
             let (gameModel, gameCmd) = Game.Core.update gameMsg model.gameModel
             in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
+        (AutoPlay, _) ->
+            ({ model | playing = not model.playing}, Cmd.none)
 
 
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
-subscriptions model = 
-    Sub.batch [Game.Core.subscriptions model.gameModel,
-               Time.every (5 * millisecond) (\_ -> AutoPlay) ]
+subscriptions model =
+    if model.playing
+    then Sub.batch [ Game.Core.subscriptions model.gameModel
+                   , Time.every (5 * millisecond) (\_ -> Play) ]
+    else Game.Core.subscriptions model.gameModel
