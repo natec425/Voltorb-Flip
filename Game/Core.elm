@@ -5,13 +5,11 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Random
 import Random.Array
+
+import List.Extra
 import Random.Extra
 
 -- HELPERS
-
-listZip : List a -> List b -> List (a, b)
-listZip a b =
-    List.map2 (\l r -> (l, r)) a b
 
 randomSample : Int -> Array a -> Random.Generator (Array a)
 randomSample n l =
@@ -53,7 +51,7 @@ emptyBoard =
 init : (Model, Cmd Msg)
 init =
     ( NoGame
-    , Random.generate NewBoard (randomBoard 1) )
+    , Random.generate NewBoard randomBoard )
 
 randomPoss : Int -> Set (Int, Int) -> Random.Generator (Set (Int, Int))
 randomPoss n availablePoss =
@@ -83,16 +81,16 @@ populateRandomTargets n b =
             |> Random.list n
 
         targets =
-            Random.map2 (\poss points -> listZip poss points |> Dict.fromList)
+            Random.map2 (\poss points -> List.Extra.zip poss points |> Dict.fromList)
                         targetPoss
                         targetPoints
     in
         targets
         |> Random.map (\ts -> {b | targets=ts})
 
-randomBoard : Int -> Random.Generator Board
-randomBoard level =
-    let numTargets = 5 + level
+randomBoard : Random.Generator Board
+randomBoard =
+    let numTargets = 6
         numMines = (25 - numTargets) // 2
     in
         Random.Extra.constant emptyBoard
@@ -113,7 +111,7 @@ update msg model =
         NoOp -> (model, Cmd.none)
         NewBoard board -> (Playing board, Cmd.none)
         Expose row column -> (expose model row column, Cmd.none)
-        NewGame -> (model, Random.generate NewBoard (randomBoard 1))
+        NewGame -> (model, Random.generate NewBoard randomBoard)
 
 expose : Model -> Int -> Int -> Model
 expose model row column =
