@@ -1,8 +1,8 @@
 module Game.Core exposing (..)
 
-import Set
-import Array
-import Dict
+import Set exposing (Set)
+import Array exposing (Array)
+import Dict exposing (Dict)
 import Random
 import Random.Array
 import Random.Extra
@@ -13,7 +13,7 @@ listZip : List a -> List b -> List (a, b)
 listZip a b =
     List.map2 (\l r -> (l, r)) a b
 
-randomSample : Int -> Array.Array a -> Random.Generator (Array.Array a)
+randomSample : Int -> Array a -> Random.Generator (Array a)
 randomSample n l =
     l
     |> Random.Array.shuffle
@@ -24,7 +24,7 @@ randomSample n l =
 size : Int
 size = 5
 
-allPoss : Set.Set (Int, Int)
+allPoss : Set (Int, Int)
 allPoss =
     [ (0, 0), (1, 0), (2, 0), (3, 0), (4, 0)
     , (0, 1), (1, 1), (2, 1), (3, 1), (4, 1)
@@ -40,12 +40,12 @@ type Model
     | Lost Board
 
 type alias Board =
-    { mines : Set.Set (Int, Int)
-    , exposed : Set.Set (Int, Int)
-    , targets : Dict.Dict (Int, Int) Int }
+    { mines : Set (Int, Int)
+    , exposed : Set (Int, Int)
+    , targets : Dict (Int, Int) Int }
 
 emptyBoard : Board
-emptyBoard = 
+emptyBoard =
     { mines = Set.empty
     , exposed = Set.empty
     , targets = Dict.empty }
@@ -55,7 +55,7 @@ init =
     ( NoGame
     , Random.generate NewBoard (randomBoard 1) )
 
-randomPoss : Int -> Set.Set (Int, Int) -> Random.Generator (Set.Set (Int, Int))
+randomPoss : Int -> Set (Int, Int) -> Random.Generator (Set (Int, Int))
 randomPoss n availablePoss =
     availablePoss
     |> Set.toList
@@ -125,7 +125,7 @@ expose model row column =
 
 exposePlaying : Board -> Int -> Int -> Model
 exposePlaying board row column =
-    let board' = 
+    let board' =
             { board | exposed = Set.insert (row, column) board.exposed }
     in if hasExposedMine board' then Lost board'
        else if allTargetsExposed board' then Won board'
