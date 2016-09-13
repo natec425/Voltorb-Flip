@@ -12,6 +12,7 @@ import Debug exposing (crash)
 type alias Model =
     { wins : Int
     , losses : Int
+    , points : Int
     , gameModel : Game.Core.Model
     , playing : Bool }
 
@@ -20,6 +21,7 @@ init =
     let (gameModel, gameCmd) = Game.Core.init
     in ({ wins = 0
         , losses = 0
+        , points = 0
         , gameModel = gameModel
         , playing = False }
        , gameCmd |> Cmd.map GameMsg)
@@ -64,8 +66,9 @@ update msg model =
             in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
         (Play, NoGame) ->
             update (GameMsg NewGame) model
-        (Play, Won _) ->
-            update (GameMsg NewGame) {model | wins = model.wins + 1}
+        (Play, Won board) ->
+            update (GameMsg NewGame) {model | wins = model.wins + 1
+                                            , points = model.points + score board}
         (Play, Lost _) ->
             update (GameMsg NewGame) {model | losses = model.losses + 1}
         (GameMsg gameMsg, _) ->

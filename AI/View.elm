@@ -12,7 +12,8 @@ view model =
     div [] [ Game.View.view model.gameModel |> Html.App.map GameMsg
            , autoPlayButton model
            , div [] [text ("Wins: " ++ toString model.wins)]
-           , div [] [text ("Loses: " ++ toString model.losses)] ]
+           , div [] [text ("Loses: " ++ toString model.losses)]
+           , div [] [text ("Points Earned: " ++ toString model.points)] ]
 
 autoPlayButton : Model -> Html Msg
 autoPlayButton model = 
