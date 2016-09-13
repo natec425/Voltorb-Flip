@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "An implementation of Voltorb Flip and an AI for it.",
-    "repository": "https://github.com/natec425/Voltorb-Flip.git",
+    "repository": "https://github.com/natec425/voltorb-flip.git",
     "license": "MIT",
     "source-directories": [
         ".",
