@@ -9,12 +9,15 @@ import Debug exposing (crash)
 
 -- MODEL
 
+type alias Action = Board -> (Int, Int)
+
 type alias Model =
     { wins : Int
     , losses : Int
     , points : Int
     , gameModel : Game.Core.Model
-    , playing : Bool }
+    , playing : Bool
+    , action : Action }
 
 init : ( Model, Cmd Msg )
 init =
@@ -23,9 +26,10 @@ init =
         , losses = 0
         , points = 0
         , gameModel = gameModel
-        , playing = False }
+        , playing = False
+        , action = action }
        , gameCmd |> Cmd.map GameMsg)
-            
+
 
 action : Board -> (Int, Int)
 action board =
@@ -53,8 +57,8 @@ type Msg
     | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Board -> (Game.Core.Model, Cmd Game.Core.Msg)
-play board =
+play : Action -> Board -> (Game.Core.Model, Cmd Game.Core.Msg)
+play action board =
     let (row, column) = action board
     in Game.Core.update (Expose row column) (Playing board)
 
@@ -62,7 +66,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case (msg, model.gameModel) of
         (Play, Playing board) ->
-            let (gameModel, gameCmd) = play board
+            let (gameModel, gameCmd) = play model.action board
             in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
         (Play, NoGame) ->
             update (GameMsg NewGame) model
