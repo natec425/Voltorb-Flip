@@ -17,7 +17,7 @@ type alias Model =
     , points : Int
     , gameModel : Game.Core.Model
     , playing : Bool
-    , action : Action }
+    , play : Board -> (Game.Core.Model, Cmd Game.Core.Msg) }
 
 init : ( Model, Cmd Msg )
 init =
@@ -27,7 +27,7 @@ init =
         , points = 0
         , gameModel = gameModel
         , playing = False
-        , action = action }
+        , play = play }
        , gameCmd |> Cmd.map GameMsg)
 
 
@@ -57,17 +57,17 @@ type Msg
     | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Action -> Board -> (Game.Core.Model, Cmd Game.Core.Msg)
-play action board =
+play : Board -> (Game.Core.Model, Cmd Game.Core.Msg)
+play board =
     let (row, column) = action board
-    in Game.Core.update (Expose row column) (Playing board)
+    in Game.Core.update (Game.Core.Expose row column) (Playing board)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case (msg, model.gameModel) of
         (Play, Playing board) ->
-            let (gameModel, gameCmd) = play model.action board
-            in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
+            model.play board
+            |> wrapGameUpdate model
         (Play, NoGame) ->
             update (GameMsg NewGame) model
         (Play, Won board) ->
@@ -81,6 +81,9 @@ update msg model =
         (AutoPlay, _) ->
             ({ model | playing = not model.playing}, Cmd.none)
 
+wrapGameUpdate : Model -> (Game.Core.Model, Cmd Game.Core.Msg) -> (Model, Cmd Msg)
+wrapGameUpdate m (gm, gc) =
+    ({ m | gameModel = gm }, gc |> Cmd.map GameMsg)
 
 -- SUBSCRIPTIONS
 
