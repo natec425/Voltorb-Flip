@@ -7,6 +7,8 @@ import Html exposing (Html, span)
 import AI.Core
 import AI.View
 
+import RandomAI.Core
+
 -- MODEL
 
 type alias Model = Array AI.Core.Model
@@ -47,8 +49,9 @@ subscriptions model =
 
 init : (Model, Cmd Msg)
 init =
-    AI.Core.init
-    |> Array.repeat 3
+    [ AI.Core.init
+    , RandomAI.Core.init ]
+    |> Array.fromList
     |> Array.indexedMap (\i (aiModel, aiCmd) -> (aiModel, aiCmd |> Cmd.map (Msg i)))
     |> Array.toList
     |> List.unzip
