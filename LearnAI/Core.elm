@@ -1,23 +1,18 @@
-module AI.Core exposing (..)
+module LearnAI.Core exposing (..)
 
+import AI.Core
 import Game.Core exposing (..)
 
 import Set
+import Dict exposing (Dict)
 import List.Extra
 import Time exposing (Time, millisecond, every)
 import Debug exposing (crash)
 
 -- MODEL
 
-type alias Action = Board -> (Int, Int)
-
-type alias Model a =
-    { wins : Int
-    , losses : Int
-    , points : Int
-    , gameModel : Game.Core.Model
-    , playing : Bool
-    , play : Board -> (Game.Core.Model, Cmd Game.Core.Msg) }
+type alias Model =
+    { AI.Core.Model | paths : Dict Int Int }
 
 init : ( Model, Cmd Msg )
 init =
@@ -29,27 +24,6 @@ init =
         , playing = False
         , play = play }
        , gameCmd |> Cmd.map GameMsg)
-
-
-action : Board -> (Int, Int)
-action board =
-    let response =
-            allPoss
-            `Set.diff` board.exposed
-            |> Set.toList
-            |> List.Extra.maximumBy (expectation board)
-    in case response of
-            Just ans -> ans
-            Nothing -> crash "AI didn't produce an answer"
-
-expectation : Board -> (Int, Int) -> Float
-expectation board (row, col) =
-    if Set.member (row, col) board.exposed
-    then cellValue board row col |> toFloat
-    else if size - rowMines board row == 0 || size - colMines board col == 0
-    then 0.0
-    else min (toFloat (rowAvailablePoints board row) / toFloat(rowAvailableSpaces board row))
-            (toFloat (colAvailablePoints board col) / toFloat (colAvailableSpaces board col))
 
 -- UPDATE
 type Msg
@@ -89,7 +63,3 @@ wrapGameUpdate m (gm, gc) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.playing
-    then Sub.batch [ Game.Core.subscriptions model.gameModel
-                   , Time.every (5 * millisecond) (\_ -> Play) ]
-    else Game.Core.subscriptions model.gameModel
