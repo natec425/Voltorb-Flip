@@ -6,18 +6,18 @@ import Set
 import Random.Extra
 
 import AI.Core
-import Game.Core
+import Game.Core exposing (Board)
 
-init : (AI.Core.Model, Cmd AI.Core.Msg)
+init : (AI.Core.Model (), Cmd AI.Core.Msg)
 init =
     let (iModel, iCmd) = AI.Core.init
     in ({ iModel | play = play }, iCmd)
 
-play : Game.Core.Board -> (Game.Core.Model, Cmd Game.Core.Msg)
+play : Board -> AI.Core.Action ()
 play board =
-    (Game.Core.Playing board,
      randomRowCol board
-     |> Random.generate (\(r, c) -> Game.Core.Expose r c))
+     |> Random.generate (\(r, c) -> AI.Core.GameMsg <| Game.Core.Expose r c)
+     |> AI.Core.WithEffect
 
 randomRowCol : Game.Core.Board -> Random.Generator (Int, Int)
 randomRowCol board =
