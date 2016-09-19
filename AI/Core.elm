@@ -10,7 +10,7 @@ import Debug exposing (crash)
 -- MODEL
 
 type Action a
-    = WithEffect (Cmd Msg)
+    = WithEffect a (Cmd Msg)
     | WithoutEffect Int Int a
 
 type alias Model aiState =
@@ -19,7 +19,7 @@ type alias Model aiState =
     , points : Int
     , gameModel : Game.Core.Model
     , playing : Bool
-    , play : Board -> Action aiState
+    , play : Board -> aiState -> Action aiState
     , aiState : aiState
     , onWin : Board -> aiState -> aiState
     , onLose : Board -> aiState -> aiState }
@@ -64,8 +64,8 @@ type Msg
     | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Board -> Action ()
-play board =
+play : Board -> () -> Action ()
+play board () =
     let (row, column) = action board
     in WithoutEffect row column ()
 
@@ -73,12 +73,12 @@ update : Msg -> Model aiState -> ( Model aiState, Cmd Msg )
 update msg model =
     case (msg, model.gameModel) of
         (Play, Playing board) ->
-            case model.play board of
+            case model.play board model.aiState of
                 WithoutEffect row column newAiState ->
                     Game.Core.update (Expose row column) model.gameModel
                     |> wrapGameUpdate { model | aiState = newAiState }
-                WithEffect cmd ->
-                    (model, cmd)
+                WithEffect newAiState cmd ->
+                    ({ model | aiState = newAiState }, cmd)
         (Play, NoGame) ->
             update (GameMsg NewGame) model
         (Play, Won board) ->

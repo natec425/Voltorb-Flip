@@ -13,11 +13,11 @@ init =
     let (iModel, iCmd) = AI.Core.init
     in ({ iModel | play = play }, iCmd)
 
-play : Board -> AI.Core.Action ()
-play board =
+play : Board -> () -> AI.Core.Action ()
+play board () =
      randomRowCol board
      |> Random.generate (\(r, c) -> AI.Core.GameMsg <| Game.Core.Expose r c)
-     |> AI.Core.WithEffect
+     |> AI.Core.WithEffect ()
 
 randomRowCol : Game.Core.Board -> Random.Generator (Int, Int)
 randomRowCol board =
