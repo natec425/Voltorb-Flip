@@ -9,17 +9,22 @@ import Debug exposing (crash)
 
 -- MODEL
 
-type alias Action = Board -> (Int, Int)
+type Action a
+    = WithEffect a (Cmd Msg)
+    | WithoutEffect Int Int a
 
-type alias Model =
+type alias Model aiState =
     { wins : Int
     , losses : Int
     , points : Int
     , gameModel : Game.Core.Model
     , playing : Bool
-    , play : Board -> (Game.Core.Model, Cmd Game.Core.Msg) }
+    , play : Board -> aiState -> Action aiState
+    , aiState : aiState
+    , onWin : Board -> aiState -> aiState
+    , onLose : Board -> aiState -> aiState }
 
-init : ( Model, Cmd Msg )
+init : ( Model (), Cmd Msg )
 init =
     let (gameModel, gameCmd) = Game.Core.init
     in ({ wins = 0
@@ -27,9 +32,11 @@ init =
         , points = 0
         , gameModel = gameModel
         , playing = False
-        , play = play }
+        , play = play
+        , onWin = \_ _ -> ()
+        , onLose = \_ _ -> ()
+        , aiState = () }
        , gameCmd |> Cmd.map GameMsg)
-
 
 action : Board -> (Int, Int)
 action board =
@@ -57,37 +64,43 @@ type Msg
     | AutoPlay
     | GameMsg Game.Core.Msg
 
-play : Board -> (Game.Core.Model, Cmd Game.Core.Msg)
-play board =
+play : Board -> () -> Action ()
+play board () =
     let (row, column) = action board
-    in Game.Core.update (Game.Core.Expose row column) (Playing board)
+    in WithoutEffect row column ()
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model aiState -> ( Model aiState, Cmd Msg )
 update msg model =
     case (msg, model.gameModel) of
         (Play, Playing board) ->
-            model.play board
-            |> wrapGameUpdate model
+            case model.play board model.aiState of
+                WithoutEffect row column newAiState ->
+                    Game.Core.update (Expose row column) model.gameModel
+                    |> wrapGameUpdate { model | aiState = newAiState }
+                WithEffect newAiState cmd ->
+                    ({ model | aiState = newAiState }, cmd)
         (Play, NoGame) ->
             update (GameMsg NewGame) model
         (Play, Won board) ->
             update (GameMsg NewGame) {model | wins = model.wins + 1
-                                            , points = model.points + score board}
-        (Play, Lost _) ->
-            update (GameMsg NewGame) {model | losses = model.losses + 1}
+                                            , points = model.points + score board
+                                            , aiState = model.onWin board model.aiState }
+        (Play, Lost board) ->
+            update (GameMsg NewGame) {model | losses = model.losses + 1
+                                            , aiState = model.onLose board model.aiState }
         (GameMsg gameMsg, _) ->
             let (gameModel, gameCmd) = Game.Core.update gameMsg model.gameModel
             in ({model | gameModel = gameModel}, gameCmd |> Cmd.map GameMsg)
         (AutoPlay, _) ->
             ({ model | playing = not model.playing}, Cmd.none)
 
-wrapGameUpdate : Model -> (Game.Core.Model, Cmd Game.Core.Msg) -> (Model, Cmd Msg)
+wrapGameUpdate : Model aiState -> (Game.Core.Model, Cmd Game.Core.Msg) -> (Model aiState, Cmd Msg)
 wrapGameUpdate m (gm, gc) =
     ({ m | gameModel = gm }, gc |> Cmd.map GameMsg)
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model aiState -> Sub Msg
 subscriptions model =
     if model.playing
     then Sub.batch [ Game.Core.subscriptions model.gameModel
