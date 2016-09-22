@@ -2,3 +2,4 @@ elm-stuff
 target
 Electron/build
 Electron/node_modules
+**.DS_Store
