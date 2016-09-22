@@ -1,0 +1,28 @@
+{
+  "name": "voltorb-flip-electron",
+  "version": "1.0.0",
+  "description": "A Voltorb Flip application built in Elm, delivered in Electron.",
+  "main": "main.js",
+  "productName": "Voltorb Flip",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager . --all --out=build --overwrite"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/natec425/voltorb-flip.git"
+  },
+  "keywords": [
+    "Electron",
+    "Elm"
+  ],
+  "author": "Nate Clark",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/natec425/voltorb-flip/issues"
+  },
+  "homepage": "https://github.com/natec425/voltorb-flip",
+  "devDependencies": {
+    "electron": "^1.3.4"
+  }
+}
